@@ -20,6 +20,7 @@ class recorder(object):
 		self.style2=xlwt.easyxf('font: height 340, name Arial, colour_index blue, bold off, italic off; align:wrap on, vert centre, horiz centre;')
 		self.styleboldred=xlwt.easyxf('font: color-index red,bold on;align:wrap on,vert centre, horiz centre;');
 		self.background1=xlwt.easyxf('pattern: pattern solid,fore_colour red;align:wrap on, vert centre,horiz centre;')
+		self.rxld=None
 	def setchangerate(self,changerate):
 		self.changerate=changerate
 	def setfilename(self,filename):
@@ -107,13 +108,13 @@ class recorder(object):
 			sheet.write(row,8,'%.2f'%((float(args['price'])*int(args['counts'])+float(args['fee']))/100.0*args['rate']),self.style1)
 			rs=self.rxld.sheet_by_index(sheetindex)
 			rows=rs.nrows
-			maxfee=args['fee']
+			maxfee=float(args['fee'])
 			total=0
 			for r in xrange(1,rows-1):
 					fee=float(rs.cell_value(r,5))
 					if fee>maxfee:
 						maxfee=fee
-					tmp=(rs.cell_value(r,6) -fee)if r!=row else args['price']*args['counts']
+					tmp=(rs.cell_value(r,6) -fee)if r!=row else float(args['price'])*int(args['counts'])
 					total+=tmp
 			total+=maxfee
 			sheet.write(rows-1,5,maxfee,self.style2)
@@ -148,7 +149,7 @@ class recorder(object):
 			if fee>maxfee:
 				maxfee=fee
 			
-		wsheet.write(rows+1,5,values['fee'],self.style2)
+		wsheet.write(rows+1,5,maxfee,self.style2)
 		wsheet.write(rows+1,6,total+maxfee+float(values['price'])*int(values['counts']),self.style2)
 		wsheet.write(rows+1,7,'%.2f'%self.changerate,self.style2)
 		wsheet.write(rows+1,8,'%.2f'%(self.changerate*(total+float(values['fee'])+float(values['price'])*int(values['counts']))/100.0),self.style2)
@@ -190,7 +191,6 @@ class recorder(object):
 				tmp=u'%s %s %d个'%(sh.cell_value(row,0),sh.cell_value(row,2),sh.cell_value(row,4))
 				result[shname]['value'].append(tmp) if result[shname].has_key('value') else result[shname].setdefault('value',[tmp])
 				result[shname]['rows'].append(row) if result[shname].has_key('rows') else result[shname].setdefault('rows',[row])
-			#result['sheetname']=sh.name
 		return result
 	def getmoredetail(self,**args):
 		result={}
@@ -224,6 +224,17 @@ class recorder(object):
 			return (True,u'删除成功')
 		except Exception,e:
 			return (False,str(e))
+	def gettotalsheets(self):
+		if os.path.isfile(self.file):
+			self.rxld= xlrd.open_workbook(self.file,formatting_info=True)
+			sheets=self.rxld.nsheets
+			result=[]
+			for n in xrange(sheets):
+				result.append(self.rxld.sheet_by_index(n).name)
+			return result
+		return None
+	def getfilename(self):
+		return self.file
 if __name__=='__main__':
 	r=recorder(.5)
 #	r.writeexcel(name='daisongchen',address='weihai',product='product1',price=100.0,counts=10,fee=12.0)
