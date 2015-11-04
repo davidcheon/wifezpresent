@@ -9,20 +9,25 @@ import rate
 import threading
 class recorder(object):
 	def __init__(self,changerate=None):
-		if changerate is None:
-			t=threading.Thread(target=self.getrate('http://data.bank.hexun.com/other/cms/fxjhjson.ashx?callback=PereMoreData'))
-			t.setDaemon(True)
-			t.start()
-		else:
-			self.changerate=changerate
+		#if changerate is None:
+		#	t=threading.Thread(target=self.getrate('http://data.bank.hexun.com/other/cms/fxjhjson.ashx?callback=PereMoreData'))
+		#	t.setDaemon(True)
+		#	t.start()
+		#else:
+		#	self.changerate=changerate
 		self.file='/home/dane/Desktop/recorder.xls'
 		self.style1=xlwt.easyxf('font: height 240,name SimSun, colour_index black, bold off, italic off; align:wrap on, vert centre, horiz centre;')
 		self.style2=xlwt.easyxf('font: height 340, name Arial, colour_index blue, bold off, italic off; align:wrap on, vert centre, horiz centre;')
 		self.styleboldred=xlwt.easyxf('font: color-index red,bold on;align:wrap on,vert centre, horiz centre;');
 		self.background1=xlwt.easyxf('pattern: pattern solid,fore_colour red;align:wrap on, vert centre,horiz centre;')
+	def setchangerate(self,changerate):
+		self.changerate=changerate
+	def setfilename(self,filename):
+		self.file=filename
 	def getrate(self,url):
 		self.changerate=rate.getkoreanratechange(url)
 	def writeexcel(self,**args):
+		header=(u'用户名',u'地址',u'商品名',u'单价',u'数量',u'邮费',u'总数(韩元)',u'汇率',u'总数(人民币)')
 		if os.path.isfile(self.file):
 			self.rxld=xlrd.open_workbook(self.file,formatting_info=True)
 			nsheets=self.rxld.nsheets
@@ -35,7 +40,6 @@ class recorder(object):
 					whichone=i
 					break
 			if not flag:
-				header=(u'NAME',u'ADDRESS',u'PRODUCT',u'PRICE',u'COUNTS',u'FEE',u'TOTAL(KR)',u'RATE(KR/RMB)',u'TOTAL(RMB)')
 				headerstyle=self.styleboldred
 				ws=copy(self.rxld)
 				ws.add_sheet(args['name'])
@@ -43,7 +47,7 @@ class recorder(object):
 				wsheet=ws.get_sheet(nsheets)
 				for i,e in enumerate(header):
 					wsheet.write(0,i,e,self.background1 if i%2==0 else headerstyle)
-					wsheet.col(i).width=10000 if e=='ADDRESS' else 5000
+					wsheet.col(i).width=10000 if e==u'地址' else 5000 if e!=u'数量' and e!=u'汇率' else 3000
 					if e=='COUNTS':wsheet.col(i).width=2500
 				wsheet.write(1,0,args['name'],self.style1)
 				wsheet.write(1,1,args['address'],self.style1)
@@ -53,23 +57,23 @@ class recorder(object):
 				wsheet.write(1,5,args['fee'],self.style1)
 				wsheet.write(1,6,float(args['price'])*int(args['counts'])+float(args['fee']),self.style1)
 				wsheet.write(1,7,self.changerate,self.style1)
-				wsheet.write(1,8,(float(args['price'])*int(args['counts'])+float(args['fee']))*self.changerate,self.style1)
+				wsheet.write(1,8,'%.2f'%((float(args['price'])*int(args['counts'])+float(args['fee']))/100.0*self.changerate),self.style1)
 				wsheet.write(2,5,args['fee'],self.style2)
 				wsheet.write(2,6,float(args['price'])*int(args['counts'])+float(args['fee']),self.style2)
 				wsheet.write(2,7,'%.2f'%self.changerate,self.style2)
-				wsheet.write(2,8,(float(args['price'])*int(args['counts'])+float(args['fee']))*self.changerate,self.style2)
+				wsheet.write(2,8,'%.2f'%((float(args['price'])*int(args['counts'])+float(args['fee']))/100.0*self.changerate),self.style2)
 				ws.save(self.file)
 
 			else:
 				self.appendexcel(whichone,**args)
 		else:	
-			header=(u'NAME',u'ADDRESS',u'PRODUCT',u'PRICE',u'COUNTS',u'FEE',u'TOTAL(KR)',u'RATE(KR/RMB)',u'TOTAL(RMB)')
+			#header=(u'NAME',u'ADDRESS',u'PRODUCT',u'PRICE',u'COUNTS',u'FEE',u'TOTAL(KR)',u'RATE(KR/RMB)',u'TOTAL(RMB)')
 			headerstyle=self.styleboldred
 			w=xlwt.Workbook(encoding='utf-8')
 			ws=w.add_sheet(args['name'],cell_overwrite_ok=True)
 			for i,c in enumerate(header):
 				ws.write(0,i,c,self.background1 if i%2==0 else headerstyle)
-				ws.col(i).width=10000 if c=='ADDRESS' else 5000
+				ws.col(i).width=10000 if c==u'地址' else 5000  if c!=u'数量' and c!=u'汇率' else 3000
 				if c=='COUNTS':ws.col(i).width=2500
 			ws.write(1,0,args['name'],self.style1)
 			ws.write(1,1,args['address'],self.style1)
@@ -79,11 +83,11 @@ class recorder(object):
 			ws.write(1,5,args['fee'],self.style1)
 			ws.write(1,6,float(args['price']*int(args['counts']))+float(args['fee']),self.style1)
 			ws.write(1,7,'%.2f'%(self.changerate),self.style1)
-			ws.write(1,8,(float(args['price'])*int(args['counts'])+float(args['fee']))*self.changerate,self.style1)
+			ws.write(1,8,'%.2f'%((float(args['price'])*int(args['counts'])+float(args['fee']))/100.0*self.changerate),self.style1)
 			ws.write(2,5,args['fee'],self.style2)
 			ws.write(2,6,float(args['price'])*int(args['counts'])+float(args['fee']),self.style2)
 			ws.write(2,7,'%.2f'%self.changerate,self.style2)
-			ws.write(2,8,(float(args['price'])*int(args['counts'])+float(args['fee']))*self.changerate,self.style2)
+			ws.write(2,8,'%.2f'%((float(args['price'])*int(args['counts'])+float(args['fee']))/100.0*self.changerate),self.style2)
 			w.save(self.file)
 			self.rxld=xlrd.open_workbook(self.file,formatting_info=True)
 	def updateexcel(self,**args):
@@ -99,7 +103,7 @@ class recorder(object):
 		sheet.write(row,5,args['fee'],self.style1)
 		sheet.write(row,6,float(args['price'])*int(args['counts'])+float(args['fee']),self.style1)
 		sheet.write(row,7,'%.2f'%self.changerate,self.style1)
-		sheet.write(row,8,(float(args['price'])*int(args['counts'])+float(args['fee']))*self.changerate,self.style1)
+		sheet.write(row,8,'%.2f'%((float(args['price'])*int(args['counts'])+float(args['fee']))/100.0*self.changerate),self.style1)
 		rs=self.rxld.sheet_by_index(sheetindex)
 		rows=rs.nrows
 		maxfee=args['fee']
@@ -111,7 +115,7 @@ class recorder(object):
 		sheet.write(rows-1,5,maxfee,self.style2)
 		sheet.write(rows-1,6,total,self.style2)
 		sheet.write(rows-1,7,'%.2f'%self.changerate,self.style2)
-		sheet.write(rows-1,8,total*self.changerate,self.style2)
+		sheet.write(rows-1,8,'%.2f'%(total*self.changerate),self.style2)
 		wb.save(self.file)
 
 	def appendexcel(self,whichone,**values):
@@ -127,14 +131,19 @@ class recorder(object):
 		wsheet.write(rows,5,values['fee'],self.style1)
 		wsheet.write(rows,6,float(values['price'])*int(values['counts'])+float(values['fee']),self.style1)
 		wsheet.write(rows,7,'%.2f'%self.changerate,self.style1)
-		wsheet.write(rows,8,(float(values['price'])*int(values['counts'])+float(values['fee']))*self.changerate,self.style1)
+		wsheet.write(rows,8,'%.2f'%((float(values['price'])*int(values['counts'])+float(values['fee']))/100.0*self.changerate),self.style1)
 		total=0
+		maxfee=float(values['fee'])
 		for i in xrange(1,rows):
-			total+=float(rsheet.cell_value(i,6))
+			fee=float(rsheet.cell_value(i,5))
+			total+=float(rsheet.cell_value(i,6))-fee
+			if fee>maxfee:
+				maxfee=fee
+			
 		wsheet.write(rows+1,5,values['fee'],self.style2)
-		wsheet.write(rows+1,6,total+float(values['fee'])+float(values['price'])*int(values['counts']),self.style2)
+		wsheet.write(rows+1,6,total+maxfee+float(values['price'])*int(values['counts']),self.style2)
 		wsheet.write(rows+1,7,'%.2f'%self.changerate,self.style2)
-		wsheet.write(rows+1,8,self.changerate*(total+float(values['fee'])+float(values['price'])*int(values['counts'])),self.style2)
+		wsheet.write(rows+1,8,'%.2f'%(self.changerate*(total+float(values['fee'])+float(values['price'])*int(values['counts']))/100.0),self.style2)
 		wxls.save(self.file)
 	def searchexcel(self,**args):
 		self.rxld=xlrd.open_workbook(self.file,formatting_info=True)	

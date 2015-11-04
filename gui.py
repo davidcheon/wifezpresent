@@ -6,40 +6,54 @@ import recorder
 from wx.lib.pubsub import Publisher
 import rate
 import threading
+import os
 class myexception(Exception):pass
 
 class mygui(wx.Frame):
 	def __init__(self):
 		wx.Frame.__init__(self,None,title=u'记账器')
-		self.SetSizeHintsSz((900,350),(900,350))
+		self.SetSizeHintsSz((900,400),(900,400))
 		self.panel=wx.Panel(self)
 		self.panel.SetBackgroundColour('white') 
 		self.recorder=recorder.recorder()
 		self.Bind(wx.EVT_CLOSE,self.closeaction)
 		
+		self.font = wx.Font(12, wx.SWISS, wx.NORMAL, wx.BOLD)		
+
 		self.username=wx.TextCtrl(self.panel)
-		self.address=wx.TextCtrl(self.panel)
+		self.address=wx.TextCtrl(self.panel,style=wx.TE_MULTILINE)
 		self.product=wx.TextCtrl(self.panel)
-		self.price=wx.TextCtrl(self.panel)
-		self.changerate=wx.TextCtrl(self.panel)
-		self.counts=wx.TextCtrl(self.panel)
-		self.fee=wx.TextCtrl(self.panel)
-		self.changerate=wx.TextCtrl(self.panel)
+		self.product.Bind(wx.EVT_TEXT,self.valuechangemoreaction)
+		self.price=wx.TextCtrl(self.panel,style=wx.TE_PROCESS_ENTER)
+		self.price.Bind(wx.EVT_TEXT_ENTER,self.textenteraction)
+		self.price.Bind(wx.EVT_TEXT,self.valuechangeaction)
+		self.changerate=wx.TextCtrl(self.panel,style=wx.TE_PROCESS_ENTER)
+		self.changerate.Bind(wx.EVT_TEXT_ENTER,self.textenteraction)
+		self.changerate.Bind(wx.EVT_TEXT,self.valuechangeaction)
+		self.counts=wx.TextCtrl(self.panel,style=wx.TE_PROCESS_ENTER)
+		self.counts.Bind(wx.EVT_TEXT_ENTER,self.textenteraction)
+		self.counts.Bind(wx.EVT_TEXT,self.valuechangeaction)
+		self.fee=wx.TextCtrl(self.panel,style=wx.TE_PROCESS_ENTER)
+		self.fee.Bind(wx.EVT_TEXT_ENTER,self.textenteraction)
+		self.fee.Bind(wx.EVT_TEXT,self.valuechangeaction)
 		self.totalkr=wx.TextCtrl(self.panel)
 		self.totalrmb=wx.TextCtrl(self.panel)
 		self.savebutton=wx.Button(self.panel,label=u'保存')
 		self.savebutton.Bind(wx.EVT_BUTTON,self.saveaction)
 	   	self.clearbutton=wx.Button(self.panel,label=u'清空')
 		self.clearbutton.Bind(wx.EVT_BUTTON,self.clearaction)
+		self.leftstatus=wx.StaticText(self.panel)		
+		self.leftstatus.SetFont(self.font)
+		self.leftstatus.SetForegroundColour(wx.RED)
 
 		self.searchusername=wx.TextCtrl(self.panel)
-		self.searchaddress=wx.TextCtrl(self.panel)
+		self.searchaddress=wx.TextCtrl(self.panel,style=wx.TE_MULTILINE)
 		self.searchbutton=wx.Button(self.panel,label=u'搜素')
 		self.userlist=wx.ListBox(self.panel,-1,(100,100),(150,170),[],wx.LB_SINGLE)
 
 
 		self.updateusername=wx.TextCtrl(self.panel)
-		self.updateaddress=wx.TextCtrl(self.panel)
+		self.updateaddress=wx.TextCtrl(self.panel,style=wx.TE_MULTILINE)
 		self.updateproduct=wx.TextCtrl(self.panel)
 		self.updateprice=wx.TextCtrl(self.panel)
 		self.updatechangerate=wx.TextCtrl(self.panel)
@@ -56,43 +70,46 @@ class mygui(wx.Frame):
 		self.lefthbox1=wx.BoxSizer()
 	
 		self.lefthbox1.Add(wx.StaticText(self.panel,label=u'用户名:'),proportion=1,flag=wx.EXPAND,border=0)
-		self.lefthbox1.Add(self.username,proportion=3,flag=wx.EXPAND,border=0)
+		self.lefthbox1.Add(self.username,proportion=3,flag=wx.EXPAND,border=5)
 
 		self.lefthbox2=wx.BoxSizer()
 		self.lefthbox2.Add(wx.StaticText(self.panel,label=u'地址:'),proportion=1,flag=wx.EXPAND,border=0)
-		self.lefthbox2.Add(self.address,proportion=3,flag=wx.EXPAND,border=0)
+		self.lefthbox2.Add(self.address,proportion=3,flag=wx.EXPAND,border=5)
 
 		self.lefthbox3=wx.BoxSizer()
 		self.lefthbox3.Add(wx.StaticText(self.panel,label=u'商品名:'),proportion=1,flag=wx.EXPAND,border=0)
-		self.lefthbox3.Add(self.product,proportion=3,flag=wx.EXPAND,border=0)
+		self.lefthbox3.Add(self.product,proportion=3,flag=wx.EXPAND,border=5)
   	
 		self.lefthbox4=wx.BoxSizer()
 		self.lefthbox4.Add(wx.StaticText(self.panel,label=u'单价:'),proportion=1,flag=wx.EXPAND,border=0)
-		self.lefthbox4.Add(self.price,proportion=3,flag=wx.EXPAND,border=0)
+		self.lefthbox4.Add(self.price,proportion=3,flag=wx.EXPAND,border=5)
 
 		self.lefthbox5=wx.BoxSizer()
 		self.lefthbox5.Add(wx.StaticText(self.panel,label=u'数量:'),proportion=1,flag=wx.EXPAND,border=0)
-		self.lefthbox5.Add(self.counts,proportion=3,flag=wx.EXPAND,border=0)
+		self.lefthbox5.Add(self.counts,proportion=3,flag=wx.EXPAND,border=5)
 
 		self.lefthbox6=wx.BoxSizer()
 		self.lefthbox6.Add(wx.StaticText(self.panel,label=u'邮费:'),proportion=1,flag=wx.EXPAND,border=0)
-		self.lefthbox6.Add(self.fee,proportion=3,flag=wx.EXPAND,border=0)
+		self.lefthbox6.Add(self.fee,proportion=3,flag=wx.EXPAND,border=5)
 
 		self.lefthbox7=wx.BoxSizer()
 		self.lefthbox7.Add(wx.StaticText(self.panel,label=u'总数(韩元):'),proportion=1,flag=wx.EXPAND,border=0)
-		self.lefthbox7.Add(self.totalkr,proportion=3,flag=wx.EXPAND,border=0)
+		self.lefthbox7.Add(self.totalkr,proportion=3,flag=wx.EXPAND,border=5)
 
 		self.lefthbox8=wx.BoxSizer()
 		self.lefthbox8.Add(wx.StaticText(self.panel,label=u'汇率:'),proportion=1,flag=wx.EXPAND,border=0)
-		self.lefthbox8.Add(self.changerate,proportion=3,flag=wx.EXPAND,border=0)
+		self.lefthbox8.Add(self.changerate,proportion=3,flag=wx.EXPAND,border=5)
 
 		self.lefthbox9=wx.BoxSizer()
 		self.lefthbox9.Add(wx.StaticText(self.panel,label=u'总数(人民币):'),proportion=1,flag=wx.EXPAND,border=0)
-		self.lefthbox9.Add(self.totalrmb,proportion=3,flag=wx.EXPAND,border=0)
+		self.lefthbox9.Add(self.totalrmb,proportion=3,flag=wx.EXPAND,border=5)
   	
 		self.lefthbox10=wx.BoxSizer()
-		self.lefthbox10.Add(self.savebutton,proportion=1,flag=wx.EXPAND,border=0)
-		self.lefthbox10.Add(self.clearbutton,proportion=1,flag=wx.EXPAND,border=0)
+		self.lefthbox10.Add(self.savebutton,proportion=1,flag=wx.EXPAND,border=5)
+		self.lefthbox10.Add(self.clearbutton,proportion=1,flag=wx.EXPAND,border=5)
+		
+		self.lefthbox11=wx.BoxSizer()
+		self.lefthbox11.Add(self.leftstatus,proportion=1,flag=wx.EXPAND|wx.ALIGN_LEFT|wx.ALIGN_RIGHT,border=1)
 
 		self.leftvbox=wx.BoxSizer(orient=wx.VERTICAL)
 		self.leftvbox.Add(self.lefthbox1)
@@ -105,7 +122,8 @@ class mygui(wx.Frame):
 		self.leftvbox.Add(self.lefthbox8)
 		self.leftvbox.Add(self.lefthbox9)
 		self.leftvbox.Add(self.lefthbox10)
-
+		self.leftvbox.Add(self.lefthbox11)
+	
 		self.midhbox1=wx.BoxSizer()
 		self.midhbox1.Add(wx.StaticText(self.panel,label=u'搜素....'),proportion=1,flag=wx.EXPAND,border=1)
 
@@ -130,44 +148,44 @@ class mygui(wx.Frame):
 		self.midvbox.Add(self.midhbox5)
 
 		self.righthbox1=wx.BoxSizer()
-		self.righthbox1.Add(wx.StaticText(self.panel,label=u'用户名:'),proportion=1,flag=wx.EXPAND,border=0)
-		self.righthbox1.Add(self.updateusername,proportion=3,flag=wx.EXPAND,border=0)
+		self.righthbox1.Add(wx.StaticText(self.panel,label=u'用户名:'),proportion=1,flag=wx.EXPAND,border=5)
+		self.righthbox1.Add(self.updateusername,proportion=3,flag=wx.EXPAND,border=5)
 
 		self.righthbox2=wx.BoxSizer()
-		self.righthbox2.Add(wx.StaticText(self.panel,label=u'地址:'),proportion=1,flag=wx.EXPAND,border=0)
-		self.righthbox2.Add(self.updateaddress,proportion=3,flag=wx.EXPAND,border=0)
+		self.righthbox2.Add(wx.StaticText(self.panel,label=u'地址:'),proportion=1,flag=wx.EXPAND,border=5)
+		self.righthbox2.Add(self.updateaddress,proportion=3,flag=wx.EXPAND,border=5)
 
 		self.righthbox3=wx.BoxSizer()
-		self.righthbox3.Add(wx.StaticText(self.panel,label=u'商品名:'),proportion=1,flag=wx.EXPAND,border=0)
-		self.righthbox3.Add(self.updateproduct,proportion=3,flag=wx.EXPAND,border=0)
+		self.righthbox3.Add(wx.StaticText(self.panel,label=u'商品名:'),proportion=1,flag=wx.EXPAND,border=5)
+		self.righthbox3.Add(self.updateproduct,proportion=3,flag=wx.EXPAND,border=5)
   	
 		self.righthbox4=wx.BoxSizer()
-		self.righthbox4.Add(wx.StaticText(self.panel,label=u'单价:'),proportion=1,flag=wx.EXPAND,border=0)
-		self.righthbox4.Add(self.updateprice,proportion=3,flag=wx.EXPAND,border=0)
+		self.righthbox4.Add(wx.StaticText(self.panel,label=u'单价:'),proportion=1,flag=wx.EXPAND,border=5)
+		self.righthbox4.Add(self.updateprice,proportion=3,flag=wx.EXPAND,border=5)
 
 		self.righthbox5=wx.BoxSizer()
-		self.righthbox5.Add(wx.StaticText(self.panel,label=u'数量:'),proportion=1,flag=wx.EXPAND,border=0)
-		self.righthbox5.Add(self.updatecounts,proportion=3,flag=wx.EXPAND,border=0)
+		self.righthbox5.Add(wx.StaticText(self.panel,label=u'数量:'),proportion=1,flag=wx.EXPAND,border=5)
+		self.righthbox5.Add(self.updatecounts,proportion=3,flag=wx.EXPAND,border=5)
 
 		self.righthbox6=wx.BoxSizer()
-		self.righthbox6.Add(wx.StaticText(self.panel,label=u'邮费:'),proportion=1,flag=wx.EXPAND,border=0)
-		self.righthbox6.Add(self.updatefee,proportion=3,flag=wx.EXPAND,border=0)
+		self.righthbox6.Add(wx.StaticText(self.panel,label=u'邮费:'),proportion=1,flag=wx.EXPAND,border=5)
+		self.righthbox6.Add(self.updatefee,proportion=3,flag=wx.EXPAND,border=5)
 
 		self.righthbox7=wx.BoxSizer()
-		self.righthbox7.Add(wx.StaticText(self.panel,label=u'总数(韩元):'),proportion=1,flag=wx.EXPAND,border=0)
-		self.righthbox7.Add(self.updatetotalkr,proportion=3,flag=wx.EXPAND,border=0)
+		self.righthbox7.Add(wx.StaticText(self.panel,label=u'总数(韩元):'),proportion=1,flag=wx.EXPAND,border=5)
+		self.righthbox7.Add(self.updatetotalkr,proportion=3,flag=wx.EXPAND,border=5)
 
 		self.righthbox8=wx.BoxSizer()
-		self.righthbox8.Add(wx.StaticText(self.panel,label=u'汇率:'),proportion=1,flag=wx.EXPAND,border=0)
-		self.righthbox8.Add(self.updatechangerate,proportion=3,flag=wx.EXPAND,border=0)
+		self.righthbox8.Add(wx.StaticText(self.panel,label=u'汇率:'),proportion=1,flag=wx.EXPAND,border=5)
+		self.righthbox8.Add(self.updatechangerate,proportion=3,flag=wx.EXPAND,border=5)
 
 		self.righthbox9=wx.BoxSizer()
-		self.righthbox9.Add(wx.StaticText(self.panel,label=u'总数(人民币):'),proportion=1,flag=wx.EXPAND,border=0)
-		self.righthbox9.Add(self.updatetotalrmb,proportion=3,flag=wx.EXPAND,border=0)
+		self.righthbox9.Add(wx.StaticText(self.panel,label=u'总数(人民币):'),proportion=1,flag=wx.EXPAND,border=5)
+		self.righthbox9.Add(self.updatetotalrmb,proportion=3,flag=wx.EXPAND,border=5)
   	
 		self.righthbox10=wx.BoxSizer()
-		self.righthbox10.Add(self.updatebutton,proportion=1,flag=wx.EXPAND,border=0)
-		self.righthbox10.Add(self.deletebutton,proportion=1,flag=wx.EXPAND,border=0)
+		self.righthbox10.Add(self.updatebutton,proportion=1,flag=wx.EXPAND,border=5)
+		self.righthbox10.Add(self.deletebutton,proportion=1,flag=wx.EXPAND,border=5)
 
 		self.rightvbox=wx.BoxSizer(wx.VERTICAL)
 		self.rightvbox.Add(self.righthbox1)
@@ -199,18 +217,80 @@ class mygui(wx.Frame):
 		Publisher.subscribe(self.getrateresult,'getrateresult')
 		t=getratethread()
 		t.start()
+	def valuechangemoreaction(self,evt):
+		self.valuechangeaction(self)
+		self.price.SetValue('')
+		self.counts.SetValue('')
+	def valuechangeaction(self,evt):
+		self.totalkr.SetValue('')
+		self.totalrmb.SetValue('')
+	def textenteraction(self,evt):
+		try:
+			self.pricevalue=float(self.price.GetValue())
+			self.countsvalue=int(self.counts.GetValue())
+			self.feevalue=float(self.fee.GetValue())
+			self.ratevalue=0.5 if self.changerate.GetValue()=='' else float(self.changerate.GetValue())
+		except Exception,e:
+			pass
+		else:
+			total=self.pricevalue*self.countsvalue+self.feevalue
+			self.totalkr.SetValue(str(total))
+			self.totalrmb.SetValue('%2.f'%(total/100.0*self.ratevalue))
 	def deleteaction(self,evt):
 		pass
 	def saveaction(self,evt):
-		pass
+		try:
+			if self.filename.GetValue()!='':
+				self.recorder.setfilename(self.filename.GetValue().strip())
+			self.filenamevalue=self.filename.GetValue().strip()
+			if self.filenamevalue!='':
+				self.filenamevalue=os.path.join('result','%s.xls'%self.filenamevalue.split('.')[0])
+			self.usernamevalue=self.username.GetValue().strip()
+			self.addressvalue=(' '.join(self.address.GetValue().strip().split('\n'))).strip()
+			self.productvalue=self.product.GetValue().strip()
+			self.pricevalue=float(self.price.GetValue().strip())
+			self.countsvalue=int(self.counts.GetValue().strip())
+			self.feevalue=float(self.fee.GetValue().strip())
+			self.ratevalue=0.5 if self.changerate.GetValue()=='' else float(self.changerate.GetValue().strip())
+			total=self.pricevalue*self.countsvalue+self.feevalue
+			if self.totalkr.GetValue()=='':
+				self.totalkr.SetValue(str(total))
+			if self.totalrmb.GetValue()=='':
+				self.totalrmb.SetValue('%.2f'%(total/100.0*self.ratevalue))
+			self.recorder.setchangerate(self.ratevalue)
+			if self.filenamevalue!='':
+				self.recorder.setfilename(self.filenamevalue)
+				self.recorder.setfilename(self.filenamevalue)
+			self.recorder.writeexcel(name=self.usernamevalue,address=self.addressvalue,product=self.productvalue,price=self.pricevalue,counts=self.countsvalue,fee=self.feevalue)
+			self.leftstatus.SetValue('Write Succeed!')
+			self.showmessage('Write Succeed!')
+		except Exception,e:
+			self.leftstatus.SetLabel('Must fill all the blank!')
+			self.showmessage('Must fill all the blank!')
+		self.leftstatus.SetLabel('')
+			
+	def showmessage(self,msg):
+		dlg=wx.MessageDialog(self.panel,msg,caption='Warning',style=wx.OK)
+		dlg.ShowModal()
+		dlg.Destroy()
 	def clearaction(self,evt):
-		pass
+		self.filename.SetValue('')
+		self.username.SetValue('')
+		self.address.SetValue('')
+		self.product.SetValue('')
+		self.price.SetValue('')
+		self.counts.SetValue('')
+		self.fee.SetValue('')
+		self.totalkr.SetValue('')
+		self.totalrmb.SetValue('')
+		self.changerate.SetValue('')
+		self.leftstatus.SetValue('')
 	def closeaction(self,evt):
 		sys.exit(0)
 	def updateaction(self,evt):
 		pass
 	def getrateresult(self,result):
-		self.changerate.SetValue(str(result.data))
+		self.changerate.SetValue('%.2f'%float(result.data))
 class getratethread(threading.Thread):
 	def run(self):
 		result=rate.getkoreanratechange()
