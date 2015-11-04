@@ -14,7 +14,7 @@ class recorder(object):
 		#	t.setDaemon(True)
 		#	t.start()
 		#else:
-		#	self.changerate=changerate
+		self.changerate=changerate
 		self.file='/home/dane/Desktop/recorder.xls'
 		self.style1=xlwt.easyxf('font: height 240,name SimSun, colour_index black, bold off, italic off; align:wrap on, vert centre, horiz centre;')
 		self.style2=xlwt.easyxf('font: height 340, name Arial, colour_index blue, bold off, italic off; align:wrap on, vert centre, horiz centre;')
@@ -91,32 +91,40 @@ class recorder(object):
 			w.save(self.file)
 			self.rxld=xlrd.open_workbook(self.file,formatting_info=True)
 	def updateexcel(self,**args):
-		sheetindex=args['sheetindex']
-		row=args['row']
-		wb=copy(self.rxld)
-		sheet=wb.get_sheet(sheetindex)
-		sheet.write(row,0,args['name'],self.style1)
-		sheet.write(row,1,args['address'],self.style1)
-		sheet.write(row,2,args['product'],self.style1)
-		sheet.write(row,3,args['price'],self.style1)
-		sheet.write(row,4,args['counts'],self.style1)
-		sheet.write(row,5,args['fee'],self.style1)
-		sheet.write(row,6,float(args['price'])*int(args['counts'])+float(args['fee']),self.style1)
-		sheet.write(row,7,'%.2f'%self.changerate,self.style1)
-		sheet.write(row,8,'%.2f'%((float(args['price'])*int(args['counts'])+float(args['fee']))/100.0*self.changerate),self.style1)
-		rs=self.rxld.sheet_by_index(sheetindex)
-		rows=rs.nrows
-		maxfee=args['fee']
-		total=0
-		for r in xrange(1,rows-1):
-				if rs.cell_value(r,5)>maxfee:
-					maxfee=rs.cell_value(r,5)
-				total+=rs.cell_value(r,6)
-		sheet.write(rows-1,5,maxfee,self.style2)
-		sheet.write(rows-1,6,total,self.style2)
-		sheet.write(rows-1,7,'%.2f'%self.changerate,self.style2)
-		sheet.write(rows-1,8,'%.2f'%(total*self.changerate),self.style2)
-		wb.save(self.file)
+		try:
+			sheetindex=args['sheetindex']
+			row=args['row']
+			wb=copy(self.rxld)
+			sheet=wb.get_sheet(sheetindex)
+			sheet.write(row,0,args['name'],self.style1)
+			sheet.write(row,1,args['address'],self.style1)
+			sheet.write(row,2,args['product'],self.style1)
+			sheet.write(row,3,args['price'],self.style1)
+			sheet.write(row,4,args['counts'],self.style1)
+			sheet.write(row,5,args['fee'],self.style1)
+			sheet.write(row,6,float(args['price'])*int(args['counts'])+float(args['fee']),self.style1)
+			sheet.write(row,7,'%.2f'%args['rate'],self.style1)
+			sheet.write(row,8,'%.2f'%((float(args['price'])*int(args['counts'])+float(args['fee']))/100.0*args['rate']),self.style1)
+			rs=self.rxld.sheet_by_index(sheetindex)
+			rows=rs.nrows
+			maxfee=args['fee']
+			total=0
+			for r in xrange(1,rows-1):
+					fee=float(rs.cell_value(r,5))
+					if fee>maxfee:
+						maxfee=fee
+					tmp=(rs.cell_value(r,6) -fee)if r!=row else args['price']*args['counts']
+					total+=tmp
+			total+=maxfee
+			sheet.write(rows-1,5,maxfee,self.style2)
+			sheet.write(rows-1,6,total,self.style2)
+			sheet.write(rows-1,7,'%.2f'%args['rate'],self.style2)
+			sheet.write(rows-1,8,'%.2f'%(total/100.0*args['rate']),self.style2)
+			wb.save(self.file)
+			return (True,u'更新成功')
+		except Exception,e:
+			return (False,str(e))
+#			raise e
 
 	def appendexcel(self,whichone,**values):
 		rsheet=self.rxld.sheet_by_index(whichone)
@@ -156,27 +164,34 @@ class recorder(object):
 				name=sh.name
 				nrows=sh.nrows
 				if name.find(args['name'])>=0:
-					matchlist.setdefault(name,[n for n in xrange(1,nrows+1)])
-			return (len(matchlist.keys())>0,'no find this username:{0}'.format(args['name']) if not len(matchlist.keys())>0 else self.readexcel(matchlist))
+					if not args.has_key('address'):
+						matchlist[name]=[n for n in xrange(1,nrows-1)]
+					else:
+						for r in xrange(1,nrows-1):
+							addr=sh.cell_value(r,1)
+							if addr.find(args['address'])>=0:						
+								matchlist[name].append(r) if matchlist.has_key(name) else matchlist.setdefault(name,[r])
+			return (len(matchlist.keys())>0,u'no find this username:{0}'.format(args['name']) if not len(matchlist.keys())>0 else self.readexcel(matchlist))
 		elif args.has_key('address'):
 			for n in xrange(nsheets):
 				sh=self.rxld.sheet_by_index(n)
 				nrows=sh.nrows
-				for r in xrange(1,nrows):
+				for r in xrange(1,nrows-1):
 					addr=sh.cell_value(r,1)
 					if addr.find(args['address'])>=0:
 						matchlist[sh.name].append(r) if matchlist.has_key(sh.name) else matchlist.setdefault(sh.name,[r])
-			return (len(matchlist.keys())>0,'no find this address:{0}'.format(args['address']) if not len(matchlist.keys())>0 else self.readexcel(matchlist))
+			return (len(matchlist.keys())>0,u'no find this address:{0}'.format(args['address']) if not len(matchlist.keys())>0 else self.readexcel(matchlist))
 	def readexcel(self,matchlist):
 		result={}
 		for shname in matchlist.keys():
 			sh=self.rxld.sheet_by_name(shname)
+			result[shname]={}
 			for row in matchlist[shname]:
-				tmp='%s\s%s\s%s'%(sh.cell_value(row,0),sh.cell_value(row,2),sh.cell_value(row,4))
-				result['value'].append(tmp) if result.has_key('value') else result.setdefault('value',[tmp])
-				result['rows'].append(row) if result.has_key('rows') else result.setdefault('rows',[row])
-			result['sheetname']=sh.name
-		print result
+				tmp=u'%s %s %d个'%(sh.cell_value(row,0),sh.cell_value(row,2),sh.cell_value(row,4))
+				result[shname]['value'].append(tmp) if result[shname].has_key('value') else result[shname].setdefault('value',[tmp])
+				result[shname]['rows'].append(row) if result[shname].has_key('rows') else result[shname].setdefault('rows',[row])
+			#result['sheetname']=sh.name
+		return result
 	def getmoredetail(self,**args):
 		result={}
 		for n in xrange(self.rxld.nsheets):
@@ -198,16 +213,22 @@ class recorder(object):
 		
 		return result
 	def deletesheet(self,**args):
-		sheetname=args['sheetname']
-		for sheet in self.rxld.sheets():
+		try:
+			sheetname=args['sheetname']
 			new_workbook=copy(self.rxld)
-			new_workbook._Workbook__worksheets=[ws for ws in new_workbook._Workbook__worksheets if ws.name==sheet.name]
+			for sheet in  new_workbook._Workbook__worksheets:
+				if sheet.name==sheetname:
+					new_workbook._Workbook__worksheets.remove(sheet)
+	
 			new_workbook.save(self.file)
+			return (True,u'删除成功')
+		except Exception,e:
+			return (False,str(e))
 if __name__=='__main__':
-	r=recorder()
+	r=recorder(.5)
 #	r.writeexcel(name='daisongchen',address='weihai',product='product1',price=100.0,counts=10,fee=12.0)
-	r.writeexcel(name='jinxianzhu',address='qiqihaer',product='product2',price=110.0,counts=3,fee=22.0)
-#	r.searchexcel(address='qiqi')
+#	r.writeexcel(name='jinxianzhu',address='qiqihaer',product='product2',price=110.0,counts=3,fee=22.0)
+	r.searchexcel(name=u'dane')
 #	print r.getmoredetail(sheetname='jinxianzhu',row=2)
 #	r.updateexcel(sheetindex=1,row=1,name='jin',address='weihai',product='prod1',price=10,counts=20,fee=33)
-#	r.deletesheet(sheetname='daisongchen')
+#	r.deletesheet(sheetname=u'dane')
