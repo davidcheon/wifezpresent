@@ -2,6 +2,7 @@
 #!_*_coding:utf-8 _*_
 import wx
 import sys
+from xlutils.copy import copy
 import recorder
 from wx.lib.pubsub import Publisher
 import rate
@@ -278,13 +279,25 @@ class mygui(wx.Frame):
 		Publisher.subscribe(self.getrateresult,'getrateresult')
 		t=getratethread()
 		t.start()
+	def verifyfileexist(func):
+		def wrapper(self,evt=None):
+			if os.path.isfile(self.recorder.getfilename()):
+				func(self,evt)
+			else:
+				if self.filename.GetValue().strip()!='':
+					self.recorder.setfilename('%s.xls'%os.path.join('result',self.filename.GetValue().strip().split('.')[0]))
+					func(self,evt)
+				else:
+					self.showmessage(u'这个文件 已经被删除，请重新添加.')
+					self.searchusername.SetValue('')
+					self.searchaddress.SetValue('')
+		return wrapper
 	def loadcurrentusers(self):
 		usernames=self.recorder.gettotalsheets()
 		if usernames is not None:
 			tmp=''
 			for key,name in enumerate(usernames):
 				tmp+=name+('\n' if (key+1)%10==0 else '\t')
-			print usernames
 			self.currentusers.SetLabel('%s:%s'%(u'当前记录的用户:',tmp))
 			
 	def setfilename(self,evt):
@@ -292,9 +305,38 @@ class mygui(wx.Frame):
 		if self.filenamevalue!='':
 			self.filenamevalue=os.path.join('result','%s.xls'%self.filenamevalue.split('.')[0])
 			self.recorder.setfilename(self.filenamevalue)
+	@verifyfileexist
 	def searchdeleteaction(self,evt):
-		pass
-		
+		sheetname,row=self.showitems[self.userlistselectionindex]
+		dlg=wx.MessageDialog(self.panel,u'你确定要删除该项吗',u'警告',wx.YES_NO|wx.ICON_QUESTION)
+		if dlg.ShowModal()==wx.ID_YES:			
+			status,info=self.recorder.deleteitem(sheetname=sheetname,row=row)
+			if status:
+				if info=='last item':
+					dlg=wx.MessageDialog(self.panel,u'这是该人最后一笔记录,你确定要删除<%s>吗?'%self.sheetname,u'警告',wx.YES_NO|wx.ICON_QUESTION)
+					if dlg.ShowModal()==wx.ID_YES:
+						sts,info=self.recorder.deletesheet(sheetname=sheetname)
+						if sts:
+							self.userlist.Clear()
+							self._refreshuserlist()
+							if self.userlist.IsEmpty():
+								self.searchusername.SetValue('')
+								self.searchaddress.SetValue('')
+							self.searchdeletebutton.Disable()				
+							self.searchbutton.Disable()
+							self.clearupdateinfo()
+							users=self.recorder.getcurrentusers(sheetname)
+							self.currentusers.SetLabel(u'当前记录的用户:%s'%('\t'.join(users)))
+					else:
+						self.userlist.SetFocus()
+					dlg.Destroy()
+				else:
+					self.loadcurrentusers()
+		#			self.showitems=[n for i,n in enumerate(self.showitems) if i != self.userlistselectionindex ]
+					self.clearupdateinfo()
+					self.userlist.Clear()
+					self._refreshuserlist()
+					self.showmessage(info)
 	def updatetextchangeaction(self,evt):
 		self.updatestatus.SetLabel('')
 	def updatetextchangeaction2(self,evt):
@@ -322,8 +364,6 @@ class mygui(wx.Frame):
 			self.searchdeletebutton.Enable(True)
 			row=self.showitems[int(self.userlistselectionindex)][1]		
 			self.sheetname=self.showitems[int(self.userlistselectionindex)][0]
-			print self.showitems
-			print '---%s---%d---'%(self.sheetname,row)
 			searchresult=self.recorder.getmoredetail(sheetname=self.sheetname,row=row)
 			self.sheetindex=searchresult['sheetindex']
 			self.row=row
@@ -331,7 +371,7 @@ class mygui(wx.Frame):
 			self.updateaddress.SetValue(searchresult['address'])
 			self.updateproduct.SetValue(searchresult['product'])
 			self.updateprice.SetValue(str(searchresult['price']))
-			self.updatecounts.SetValue('%d'%searchresult['counts'])
+			self.updatecounts.SetValue(str(searchresult['counts']))
 			self.updatefee.SetValue(str(searchresult['fee']))
 			self.updatetotalkr.SetValue(str(searchresult['totalkr']))
 			self.updatetotalrmb.SetValue(str(searchresult['totalrmb']))
@@ -341,19 +381,6 @@ class mygui(wx.Frame):
 		self.userlist.Clear()
 		self.searchdeletebutton.Enable()
 		self.searchbutton.Enable()
-	def verifyfileexist(func):
-		def wrapper(self,evt):
-			if os.path.isfile(self.recorder.getfilename()):
-				func(self,evt)
-			else:
-				if self.filename.GetValue().strip()!='':
-					self.recorder.setfilename('%s.xls'%os.path.join('result',self.filename.GetValue().strip().split('.')[0]))
-					func(self,evt)
-				else:
-					self.showmessage(u'这个文件 已经被删除，请重新添加.')
-					self.searchusername.SetValue('')
-					self.searchaddress.SetValue('')
-		return wrapper
 	@verifyfileexist
 	def searchaction(self,evt):
 		
@@ -423,21 +450,16 @@ class mygui(wx.Frame):
 			if dlg.ShowModal()==wx.ID_YES:
 				status,info=self.recorder.deletesheet(sheetname=self.sheetname)
 				if status:
+					self.showitems=[(n,m) for n,m in enumerate(self.showitems) if n!=self.userlistselectionindex]
+					self.userlist.Clear()
+					self._refreshuserlist()
 					if self.userlist.IsEmpty():
 						self.searchusername.SetValue('')
 						self.searchaddress.SetValue('')
-					print '------'
-					print self.showitems
-					self.showitems=[(n,m) for n,m in enumerate(self.showitems) if n!=self.userlistselectionindex]
-					print self.showitems
-					print self.userlistselectionindex
-					print '-------'
 					self.searchbutton.Disable()
 					self.searchdeletebutton.Disable()				
 					self.loadcurrentusers()
 					self.clearupdateinfo()
-					self.userlist.Clear()
-					self._refreshuserlist()
 				self.updatestatus.SetLabel(info)
 				self.showmessage(info)
 			dlg.Destroy()
@@ -463,16 +485,16 @@ class mygui(wx.Frame):
 			self.addressvalue=(' '.join(self.address.GetValue().strip().split('\n'))).strip()
 			self.productvalue=self.product.GetValue().strip()
 			self.pricevalue=float(self.price.GetValue().strip())
-			self.countsvalue=int(self.counts.GetValue().strip())
+			self.countsvalue=int(float(self.counts.GetValue().strip()))
 			self.feevalue=float(self.fee.GetValue().strip())
-			self.ratevalue=0.5 if self.changerate.GetValue()=='' else float(self.changerate.GetValue().strip())
+			self.ratevalue=0.5 if self.changerate.GetValue()=='' else float('%.2f'%self.changerate.GetValue().strip())
 			total=self.pricevalue*self.countsvalue+self.feevalue
 			if self.totalkr.GetValue()=='':
 				self.totalkr.SetValue(str(total))
 			if self.totalrmb.GetValue()=='':
 				self.totalrmb.SetValue('%.2f'%(total/100.0*self.ratevalue))
 			self.recorder.setchangerate(self.ratevalue)
-			self.recorder.writeexcel(name=self.usernamevalue,address=self.addressvalue,product=self.productvalue,price=self.pricevalue,counts=self.countsvalue,fee=self.feevalue)
+			self.recorder.writeexcel(name=self.usernamevalue,address=self.addressvalue,product=self.productvalue,price=self.pricevalue,counts=self.countsvalue,fee=self.feevalue,rate=self.ratevalue)
 			self.searchaction(None)
 			self.loadcurrentusers()
 			self.leftstatus.SetLabel('写入成功!')
@@ -505,26 +527,28 @@ class mygui(wx.Frame):
 	def updateaction(self,evt):
 		try:
 		
-			name=self.updateusername.GetValue()
-			address=self.updateaddress.GetValue()
-			product=self.updateproduct.GetValue()
-			price=float(self.updateprice.GetValue())
-			counts=int(self.updatecounts.GetValue())
-			fee=float(self.updatefee.GetValue())
-			rate=float(self.updatechangerate.GetValue())
+			name=self.updateusername.GetValue().strip()
+			address=self.updateaddress.GetValue().strip()
+			product=self.updateproduct.GetValue().strip()
+			price=float(self.updateprice.GetValue().strip())
+			counts=int(float(self.updatecounts.GetValue().strip()))
+			fee=float(self.updatefee.GetValue().strip())
+			rate=float(self.updatechangerate.GetValue().strip())
 			self.updatetotalkr.SetValue('%.2f'%(price*counts+fee))
 			self.updatetotalrmb.SetValue('%.2f'%((price*counts+fee)/100.0*rate))
 			status,info=self.recorder.updateexcel(name=name,address=address,product=product,counts=counts,fee=fee,rate=rate,price=price,sheetindex=self.sheetindex,row=self.row)
 			self.updatestatus.SetLabel(info)
 			
 			status,self.result= self.recorder.searchexcel(name=u'%s'%self.searchusernamevalue) if self.searchusernamevalue!='' else self.recorder.searchexcel(address=u'%s'%self.searchaddressvalue)
-			
+			self.userlist.Clear()
 			self._refreshuserlist()
 
 			self.showmessage(info)
 		except Exception,e:
-			self.showmessage(u'请输入正确数字格式')
-	def _refreshuserlist(self):
+			self.showmessage(str(e))
+#			self.showmessage(u'请输入正确数字格式')
+	@verifyfileexist
+	def _refreshuserlist(self,evt=None):
 		status,self.result= self.recorder.searchexcel(name=u'%s'%self.searchusernamevalue) if self.searchusernamevalue!='' else self.recorder.searchexcel(address=u'%s'%self.searchaddressvalue)
 		if status:
 			showlist=[]
@@ -539,6 +563,7 @@ class mygui(wx.Frame):
 			self.userlistselection()
 	def getrateresult(self,result):
 		self.changerate.SetValue('%.2f'%float(result.data))
+		self.recorder.setchangerate(float(result.data))
 class getratethread(threading.Thread):
 	def run(self):
 		result=rate.getkoreanratechange()
