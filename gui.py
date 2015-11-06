@@ -487,7 +487,7 @@ class mygui(wx.Frame):
 			self.pricevalue=float(self.price.GetValue().strip())
 			self.countsvalue=int(float(self.counts.GetValue().strip()))
 			self.feevalue=float(self.fee.GetValue().strip())
-			self.ratevalue=0.5 if self.changerate.GetValue()=='' else float('%.2f'%self.changerate.GetValue().strip())
+			self.ratevalue=0.5 if self.changerate.GetValue()=='' else float('%.2f'%float(self.changerate.GetValue().strip()))
 			total=self.pricevalue*self.countsvalue+self.feevalue
 			if self.totalkr.GetValue()=='':
 				self.totalkr.SetValue(str(total))
@@ -500,7 +500,7 @@ class mygui(wx.Frame):
 			self.leftstatus.SetLabel('写入成功!')
 			self.showmessage('写入成功!')
 		except Exception,e:
-#			raise e
+			raise e
 			self.leftstatus.SetLabel(str(e))
 			self.showmessage(str(e))
 		self.leftstatus.SetLabel('')

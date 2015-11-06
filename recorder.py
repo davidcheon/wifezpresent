@@ -22,7 +22,7 @@ class recorder(object):
 		self.background1=xlwt.easyxf('pattern: pattern solid,fore_colour red;align:wrap on, vert centre,horiz centre;')
 		self.rxld=None
 	def setchangerate(self,changerate):
-		self.changerate=changerate
+		self.changerate=float(changerate)
 	def setfilename(self,filename):
 		self.file=filename
 	def getrate(self,url):
@@ -58,11 +58,11 @@ class recorder(object):
 				wsheet.write(1,5,args['fee'],self.style1)
 				wsheet.write(1,6,float(args['price'])*int(args['counts'])+float(args['fee']),self.style1)
 				wsheet.write(1,7,'%.2f'%self.changerate,self.style1)
-				wsheet.write(1,8,'%.2f'%((float(args['price'])*int(args['counts'])+float(args['fee']))/100.0*self.changerate),self.style1)
+				wsheet.write(1,8,'%.2f'%((float(args['price'])*int(args['counts'])+float(args['fee']))/100.0*float(self.changerate)),self.style1)
 				wsheet.write(2,5,args['fee'],self.style2)
 				wsheet.write(2,6,float(args['price'])*int(args['counts'])+float(args['fee']),self.style2)
 				wsheet.write(2,7,'%.2f'%self.changerate,self.style2)
-				wsheet.write(2,8,'%.2f'%((float(args['price'])*int(args['counts'])+float(args['fee']))/100.0*self.changerate),self.style2)
+				wsheet.write(2,8,'%.2f'%((float(args['price'])*int(args['counts'])+float(args['fee']))/100.0*float(self.changerate)),self.style2)
 				ws.save(self.file)
 
 			else:
@@ -84,11 +84,11 @@ class recorder(object):
 			ws.write(1,5,args['fee'],self.style1)
 			ws.write(1,6,float(args['price']*int(args['counts']))+float(args['fee']),self.style1)
 			ws.write(1,7,'%.2f'%(self.changerate),self.style1)
-			ws.write(1,8,'%.2f'%((float(args['price'])*int(args['counts'])+float(args['fee']))/100.0*self.changerate),self.style1)
+			ws.write(1,8,'%.2f'%((float(args['price'])*int(args['counts'])+float(args['fee']))/100.0*float(self.changerate)),self.style1)
 			ws.write(2,5,args['fee'],self.style2)
 			ws.write(2,6,float(args['price'])*int(args['counts'])+float(args['fee']),self.style2)
 			ws.write(2,7,'%.2f'%self.changerate,self.style2)
-			ws.write(2,8,'%.2f'%((float(args['price'])*int(args['counts'])+float(args['fee']))/100.0*self.changerate),self.style2)
+			ws.write(2,8,'%.2f'%((float(args['price'])*int(args['counts'])+float(args['fee']))/100.0*float(self.changerate)),self.style2)
 			w.save(self.file)
 			self.rxld=xlrd.open_workbook(self.file,formatting_info=True)
 	def updateexcel(self,**args):
@@ -151,8 +151,8 @@ class recorder(object):
 		wsheet.write(rows,4,values['counts'],self.style1)
 		wsheet.write(rows,5,values['fee'],self.style1)
 		wsheet.write(rows,6,float(values['price'])*int(values['counts'])+float(values['fee']),self.style1)
-		wsheet.write(rows,7,'%.2f'%self.changerate,self.style1)
-		wsheet.write(rows,8,'%.2f'%((float(values['price'])*int(values['counts'])+float(values['fee']))/100.0*self.changerate),self.style1)
+		wsheet.write(rows,7,'%.2f'%float(self.changerate),self.style1)
+		wsheet.write(rows,8,'%.2f'%((float(values['price'])*int(values['counts'])+float(values['fee']))/100.0*float(self.changerate)),self.style1)
 		total=0
 		maxfee=float(values['fee'])
 		maxrate=float(values['rate'])
