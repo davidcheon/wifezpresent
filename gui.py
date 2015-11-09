@@ -652,6 +652,27 @@ class mygui(wx.Frame):
 				else:
 					self.showmessage(u'请填入要要搜索的文件名')
 		return wrapper
+	def verifyfileexist2(status=False):
+		def _wrapper(func):
+			def wrapper(self,evt=None):
+				if os.path.exists(self.recorder.getfilename()):
+					func(self,evt)
+				else:
+					if self.filename.GetValue().strip()!='':
+						if self.recorder.getfilename() =='':
+							self.recorder.setfilename('%s.xls'%os.path.join('result',self.filename.GetValue().strip().split('.')[0]))
+							func(self,evt)
+						else:
+							if  status:
+								self.recorder.setfilename('%s.xls'%os.path.join('result',self.filename.GetValue().strip().split('.')[0]))
+							else:
+								self.showmessage(u'这个文件已经被删除，请重新添加.')
+								self.searchusername.SetValue('')
+								self.searchaddress.SetValue('')
+					else:
+						self.showmessage(u'请填入要要搜索的文件名')
+			return wrapper
+		return _wrapper
 	def filenameaction(self,evt):
 		self.userlist.Clear()
 		self.searchusername.SetValue('')
@@ -678,7 +699,7 @@ class mygui(wx.Frame):
 		if self.filenamevalue!='':
 			self.filenamevalue=os.path.join('result','%s.xls'%self.filenamevalue.split('.')[0])
 			self.recorder.setfilename(self.filenamevalue)
-	@verifyfileexist
+	@verifyfileexist2(False)
 	def searchdeleteaction(self,evt):
 		sheetname,row=self.showitems[self.userlistselectionindex]
 		dlg=wx.MessageDialog(self.panel,u'你确定要删除该项吗',u'警告',wx.YES_NO|wx.ICON_QUESTION)
@@ -772,7 +793,7 @@ class mygui(wx.Frame):
 #		self.searchdeletebutton.Enable()
 		self.searchbutton.Enable()
 		self.clearupdateinfo()
-	@verifyfileexist
+	@verifyfileexist2(status=True)
 	def searchaction(self,evt):
 		
 		self.userlist.Clear()
@@ -781,7 +802,8 @@ class mygui(wx.Frame):
 		if self.searchusernamevalue=='' and self.searchaddressvalue=='':
 			self.setfilename(self.filename.GetValue().strip())
 			self.loadcurrentusers()
-			if self.recorder.getfilename()!='':
+#			if self.recorder.getfilename()!='':
+			if evt!=None:
 				self.showmessage('请先填写搜索姓名或地址')
 		else:
 			if self.filename.GetValue().strip()!='':
@@ -825,7 +847,7 @@ class mygui(wx.Frame):
 			total=self.pricevalue*self.countsvalue+self.feevalue
 			self.totalkr.SetValue(str(total))
 			self.totalrmb.SetValue('%2.f'%(total/100.0*self.ratevalue))
-	@verifyfileexist
+	@verifyfileexist2(False)
 	def deleteaction(self,evt):
 		totalsheets=self.recorder.gettotalsheets()
 		if len(totalsheets)==1 and totalsheets[0]==self.sheetname:
@@ -933,7 +955,7 @@ class mygui(wx.Frame):
 		self.leftstatus.SetLabel('')
 	def closeaction(self,evt):
 		sys.exit(0)
-	@verifyfileexist
+	@verifyfileexist2(False)
 	def updateaction(self,evt):
 		try:
 		
@@ -957,7 +979,7 @@ class mygui(wx.Frame):
 		except Exception,e:
 			self.showmessage(str(e))
 #			self.showmessage(u'请输入正确数字格式')
-	@verifyfileexist
+	@verifyfileexist2(False)
 	def _refreshuserlist(self,evt=None):
 		status,self.result= self.recorder.searchexcel(name=u'%s'%self.searchusernamevalue) if self.searchusernamevalue!='' else self.recorder.searchexcel(address=u'%s'%self.searchaddressvalue)
 		if status:
