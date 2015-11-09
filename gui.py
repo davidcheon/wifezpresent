@@ -367,13 +367,18 @@ class recorder(object):
 class mygui(wx.Frame):
 	def __init__(self):
 		wx.Frame.__init__(self,None,title=u'媳妇的记账器')
-		self.SetSizeHintsSz((900,400),(900,400))
 		self.panel=wx.Panel(self,-1,style=wx.SIMPLE_BORDER)
 		self.panel.SetBackgroundColour(wx.Colour(230,255,255)) 
 #		self.recorder=recorder.recorder()
 		self.recorder=recorder()
 		self.Bind(wx.EVT_CLOSE,self.closeaction)
 		
+		img=wx.Image(os.path.join('static','10.jpg'),wx.BITMAP_TYPE_JPEG).ConvertToBitmap()
+		self.SetSizeHintsSz((900,400),(900,400))
+#		wx.StaticBitmap(parent=self,bitmap=imgtmp,size=(900,400))
+		wx.StaticBitmap(parent=self.panel,bitmap=img,size=(900,400))
+
+
 		self.userlistselectionindex=0
 		self.font = wx.Font(12, wx.SWISS, wx.NORMAL, wx.BOLD)		
 		
