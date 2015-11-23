@@ -4,6 +4,7 @@ import wx
 import sys
 from xlutils.copy import copy
 #from wx.lib.pubsub import Publisher
+from wx.lib.pubsub import setuparg1
 from wx.lib.pubsub import pub as Publisher
 import threading
 import os
@@ -409,7 +410,7 @@ class mygui(wx.Frame):
 		self.price=wx.TextCtrl(self.panel,style=wx.TE_PROCESS_ENTER)
 		self.price.Bind(wx.EVT_TEXT_ENTER,self.textenteraction)
 		self.price.Bind(wx.EVT_TEXT,self.valuechangeaction)
-		self.changerate=wx.TextCtrl(self.panel,style=wx.TE_PROCESS_ENTER,value='0.6')
+		self.changerate=wx.TextCtrl(self.panel,style=wx.TE_PROCESS_ENTER)
 		self.changerate.Bind(wx.EVT_TEXT_ENTER,self.textenteraction)
 		self.changerate.Bind(wx.EVT_TEXT,self.valuechangeaction)
 		self.counts=wx.TextCtrl(self.panel,style=wx.TE_PROCESS_ENTER)
@@ -639,9 +640,9 @@ class mygui(wx.Frame):
 		self.panel.SetSizer(self.generalhbox)
 
 		self.loadcurrentusers()
-#		Publisher.subscribe(self.getrateresult,'getrateresult')
-#		t=getratethread()
-#		t.start()
+		Publisher.subscribe(self.getrateresult,'getrateresult')
+		t=getratethread()
+		t.start()
 	def verifyfileexist(func):
 		def wrapper(self,evt=None):
 			if os.path.exists(self.recorder.getfilename()):
